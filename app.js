@@ -1,36 +1,43 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
-const port = 3000;
+const PORT = 3000;
 
-// Enable CORS for all routes
-app.use(cors());
+// CORS configuration
+const corsOptions = {
+  origin: "*", // WARNING: Allowing all origins; adjust as needed
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: "Content-Type"
+};
 
-// Middleware to parse JSON data in the request body
-app.use(bodyParser.json());
+app.use(cors(corsOptions));
+app.use(express.json());
 
-// In-memory data store for properties
-let properties = [];
+// Sample data storage (In-memory array, replace with database in production)
+let models = [];
 
-// POST route to add a new property
-app.post('/api/properties', (req, res) => {
-  const { image, name, about, sqft, person, res: rooms, price, location, image2, image3, image4 } = req.body;
+// Get all models
+app.get("/models", (req, res) => {
+  res.json(models);
+});
 
-  // Validate required fields
-  if (!image || !name || !about || !sqft || !person || !rooms || !price || !location) {
-    return res.status(400).json({ message: 'Missing required fields' });
+// Add a new model
+app.post("/models", (req, res) => {
+  const { image, name, about, sqft, person, res: response, price, location, image2, image3, image4 } = req.body;
+  
+  if (!name || !price || !location) {
+    return res.status(400).json({ error: "Name, price, and location are required" });
   }
 
-  // Create new property object
-  const newProperty = {
+  const newModel = {
+    id: models.length + 1,
     image,
     name,
     about,
     sqft,
     person,
-    rooms,
+    res: response,
     price,
     location,
     image2,
@@ -38,22 +45,32 @@ app.post('/api/properties', (req, res) => {
     image4
   };
 
-  // Add the new property to the in-memory data store
-  properties.push(newProperty);
-
-  // Respond with the newly added property
-  return res.status(201).json({
-    message: 'Property created successfully',
-    property: newProperty
-  });
+  models.push(newModel);
+  res.status(201).json(newModel);
 });
 
-// GET route to retrieve all properties
-app.get('/api/properties', (req, res) => {
-  res.status(200).json(properties);
+// Get a model by ID
+app.get("/models/:id", (req, res) => {
+  const model = models.find(m => m.id === parseInt(req.params.id));
+  if (!model) return res.status(404).json({ error: "Model not found" });
+  res.json(model);
 });
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+// Update a model
+app.put("/models/:id", (req, res) => {
+  const model = models.find(m => m.id === parseInt(req.params.id));
+  if (!model) return res.status(404).json({ error: "Model not found" });
+  
+  Object.assign(model, req.body);
+  res.json(model);
+});
+
+// Delete a model
+app.delete("/models/:id", (req, res) => {
+  models = models.filter(m => m.id !== parseInt(req.params.id));
+  res.json({ message: "Model deleted" });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
